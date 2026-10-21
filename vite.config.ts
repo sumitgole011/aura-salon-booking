@@ -7,7 +7,7 @@ import { sites } from "./scripts/vite/sites-vite-plugin";
 import { connectorPreview } from "./scripts/vite/connector-preview-plugin.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
-  "00000000-0000-4000-8000-000000000000";
+  "7ce0241d-d8c3-4bac-9ea3-a27a3ea108ed";
 
 const { d1, r2 } = hostingConfig;
 
@@ -22,7 +22,7 @@ const localBindingConfig = {
     ? [
         {
           binding: d1,
-          database_name: "site-creator-d1",
+          database_name: "aura-salon-db",
           database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
         },
       ]
