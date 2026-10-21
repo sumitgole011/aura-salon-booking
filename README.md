@@ -2,6 +2,8 @@
 
 ## Project links
 
+- **Demo video:** [Watch walkthrough](https://drive.google.com/file/d/1LZG9bk0m8E56S3sW8gEAXLP_Nz-yHL_6/view?usp=sharing)
+
 - **Live app:** https://aura-salon-booking.sumitg.workers.dev
 - **GitHub:** https://github.com/sumitgole011/aura-salon-booking
 
