@@ -6,7 +6,7 @@
 - **GitHub:** https://github.com/sumitgole011/aura-salon-booking
 
 
-Original hiring-task implementation for GURU AI Technologies. Read **docs/START-HERE.md** first for the verified scope and remaining work. This source package is **not submission-ready yet**: dependency installation and publishing were blocked by network/DNS errors, and no LLM key was provided.
+Hiring-task implementation for GURU AI Technologies. Deployed on Cloudflare Workers with a hosted D1 database. The live health check confirms database connectivity and AI/admin configuration. A live chatbot reply has been verified by the project owner.
 
 ## Stack
 
@@ -92,7 +92,7 @@ The client never controls prices. The server loads service prices/durations from
 
 ### Chatbot
 
-The server loads the current service catalog and injects it with the system prompt. Only the last six conversation messages and a 1000-character input are accepted. The API key stays server-side. The widget explicitly shows catalog mode if no key is configured. No successful live model evaluation has yet been performed.
+The server loads the current service catalog and injects it with the system prompt. Only the last six conversation messages and a 1000-character input are accepted. The API key stays server-side. The widget explicitly shows catalog mode if no key is configured. A live chatbot reply has been verified by the project owner. Full multilingual and prompt-injection testing should be completed separately.
 
 ### REST endpoints
 
@@ -111,11 +111,12 @@ PATCH accepts either `{ "status": "Confirmed" }` or `{ "date": "YYYY-MM-DD", "ti
 
 ## Hosting and GitHub
 
-The `.openai/hosting.json` contains the already registered private Sites project. Reuse this ID; do not create another Site on retry. No source push or deployment succeeded in the authoring session. The expected hostname must not be submitted as a working URL until deployment succeeds and reviewer access is tested.
+- Live app: https://aura-salon-booking.sumitg.workers.dev
+- Repository: https://github.com/sumitgole011/aura-salon-booking
 
-For Sites publishing, install dependencies, validate/build, synchronize source using the Sites source helper and deploy the same source version. Configure ADMIN_TOKEN/GEMINI_API_KEY as runtime secrets. Keep the private audience until reviewer access is intentionally arranged. D1 is declared as `DB` and provisioned by Sites; hosted schema migrations apply during deployment.
+Deployed directly to Cloudflare Workers with D1 bound as DB. Runtime secrets ADMIN_TOKEN, GEMINI_API_KEY and GEMINI_MODEL are configured in Cloudflare.
 
-A GitHub repository has not been created. Upload the source without `.dev.vars`, `.env*`, `.sites-runtime`, `.wrangler`, `node_modules`, build output, credentials or real customer data. The supplied package excludes those. Provide the reviewer a working live link and safe database read access, never a database write secret.
+Keep API keys and admin credentials private. Earlier setup documents may describe pre-deployment limitations.
 
 ## Constraints and next improvements
 
