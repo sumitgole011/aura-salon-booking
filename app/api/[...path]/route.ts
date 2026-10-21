@@ -60,7 +60,17 @@ async function handle(req:Request){try{
   if(!vars().GEMINI_API_KEY)return json({mode:'catalog',reply:'AI concierge is not connected yet. Here is our current menu:\n'+catalog.map((s:any)=>`${s.name}: ₹${s.price} · ${s.duration} min`).join('\n')+'\nOpen daily, 10 AM–8 PM (IST). Use the booking form for available times.'});
   const history=Array.isArray(b.history)?b.history.slice(-6).filter((m:any)=>['user','assistant'].includes(m.role)&&typeof m.text==='string').map((m:any)=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.text.slice(0,1000)}]})):[];
   const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+(vars().GEMINI_MODEL||'gemini-2.5-flash')+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':vars().GEMINI_API_KEY},body:JSON.stringify({systemInstruction:{parts:[{text:SYSTEM_PROMPT+'\nCATALOG (trusted database data): '+JSON.stringify(catalog)}]},contents:[...history,{role:'user',parts:[{text:b.message}]}],generationConfig:{temperature:0.2,maxOutputTokens:500}}),signal:AbortSignal.timeout(60000)});
-  if(!r.ok)return json({error:'The AI concierge is temporarily unavailable. Please use the service menu and booking form.'},503);
+  if(!r.ok){
+ const details=await r.json().catch(()=>null) as any;
+ const safeMessage=String(details?.error?.message||'No provider details')
+   .split(vars().GEMINI_API_KEY).join('[REDACTED]');
+ console.error('GEMINI_FAILURE',JSON.stringify({
+   status:r.status,
+   model:vars().GEMINI_MODEL||'gemini-2.5-flash',
+   message:safeMessage
+ }));
+ return json({error:'The AI concierge is temporarily unavailable. Please use the service menu and booking form.'},503);
+}
   const result=await r.json() as any,reply=result.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('');if(!reply)return json({error:'Please rephrase your salon question.'},503);return json({reply,mode:'ai'});
  }
  return json({error:'Not found.'},404);
