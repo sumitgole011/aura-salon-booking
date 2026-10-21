@@ -1,0 +1,45 @@
+import {DatabaseSync} from 'node:sqlite';
+import fs from 'node:fs';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+const root=process.cwd();fs.mkdirSync(path.join(root,'.sites-runtime'),{recursive:true});
+const temporary=fs.mkdtempSync(path.join(root,'.sites-runtime','test-'));
+const db=new DatabaseSync(path.join(temporary,'test.sqlite'));
+db.exec('PRAGMA foreign_keys=ON;');
+db.exec(fs.readFileSync('drizzle/0000_salon.sql','utf8'));
+class Statement{constructor(sql,args=[]){this.sql=sql;this.args=args}bind(...args){return new Statement(this.sql,args)}async first(){return db.prepare(this.sql).get(...this.args)||null}async all(){return {results:db.prepare(this.sql).all(...this.args)}}async run(){return db.prepare(this.sql).run(...this.args)}}
+globalThis.__salonTestEnv={ADMIN_TOKEN:'test-only-key',DB:{prepare:s=>new Statement(s),batch:async statements=>{db.exec('BEGIN');try{const values=[];for(const s of statements)values.push(await s.run());db.exec('COMMIT');return values}catch(e){db.exec('ROLLBACK');throw e}}}};
+const source=fs.readFileSync('app/api/[...path]/route.ts','utf8').replace("import {env} from 'cloudflare:workers';","const env=globalThis.__salonTestEnv;").replace("'../../../lib/booking'",JSON.stringify(pathToFileURL(path.join(root,'lib/booking.ts')).href)).replace("'../../../lib/prompt'",JSON.stringify(pathToFileURL(path.join(root,'lib/prompt.ts')).href));
+fs.writeFileSync(path.join(temporary,'route.ts'),source);
+const api=await import(pathToFileURL(path.join(temporary,'route.ts')));
+let passed=0;const results=[];
+async function test(name,fn){try{await fn();passed++;results.push({name,passed:true});console.log('PASS '+name)}catch(e){results.push({name,passed:false,error:e.message});console.error('FAIL '+name+' '+e.message);process.exitCode=1}}
+async function call(path,method='GET',data,admin=false){const req=new Request('http://localhost/api/'+path,{method,headers:{'Content-Type':'application/json',...(admin?{Authorization:'Bearer test-only-key'}:{})},...(data?{body:JSON.stringify(data)}:{})});const res=await api[method](req);return {status:res.status,body:await res.json()}}
+const date=new Date(Date.now()+2*86400000).toISOString().slice(0,10),date2=new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+const payload={customer_name:'Test Customer',phone:'9876543210',service_id:1,date,time:'11:00'};let booking,invoice;
+await test('Seeds exact five services and three sample statuses',async()=>{const r=await call('services');assert.equal(r.status,200);assert.deepEqual(r.body.services.map(s=>s.price),[200,100,800,500,5000]);assert.equal(db.prepare('SELECT COUNT(*) n FROM bookings').get().n,3)});
+await test('Admin booking data is protected',async()=>assert.equal((await call('bookings?date='+date)).status,401));
+await test('Missing fields rejected on server',async()=>assert.equal((await call('bookings','POST',{})).status,400));
+await test('Invalid phone rejected',async()=>assert.equal((await call('bookings','POST',{...payload,phone:'123'})).status,400));
+await test('Past date rejected',async()=>assert.equal((await call('bookings','POST',{...payload,date:'2020-01-01'})).status,400));
+await test('Impossible date rejected',async()=>assert.equal((await call('bookings','POST',{...payload,date:'2027-02-30'})).status,400));
+await test('Bridal appointment cannot overrun closing',async()=>assert.equal((await call('bookings','POST',{...payload,service_id:5,time:'19:00'})).status,400));
+await test('Fresh booking persists with server-owned price',async()=>{const r=await call('bookings','POST',{...payload,price:1});assert.equal(r.status,201);booking=r.body.booking;assert.equal(booking.price,200);assert.equal(db.prepare('SELECT price FROM bookings WHERE id=?').get(booking.id).price,200)});
+await test('Same start time rejected without orphan booking',async()=>{const before=db.prepare('SELECT COUNT(*) n FROM bookings').get().n;assert.equal((await call('bookings','POST',payload)).status,409);assert.equal(db.prepare('SELECT COUNT(*) n FROM bookings').get().n,before)});
+await test('Overlapping different start time rejected',async()=>assert.equal((await call('bookings','POST',{...payload,time:'11:15'})).status,409));
+await test('Availability excludes occupied duration',async()=>{const r=await call(`slots?date=${date}&service_id=1`);assert(!r.body.slots.includes('11:00'));assert(!r.body.slots.includes('11:15'));assert(!r.body.slots.includes('10:45'));assert(r.body.slots.includes('11:30'))});
+await test('Authorized listing reloads saved booking',async()=>{const r=await call('bookings?date='+date,'GET',undefined,true);assert(r.body.bookings.some(b=>b.id===booking.id))});
+await test('Invalid status transition blocked',async()=>assert.equal((await call('bookings/'+booking.id,'PATCH',{status:'Done'},true)).status,400));
+await test('Pending can be confirmed',async()=>assert.equal((await call('bookings/'+booking.id,'PATCH',{status:'Confirmed'},true)).status,200));
+await test('Reschedule moves reservation and releases old slot',async()=>{assert.equal((await call('bookings/'+booking.id,'PATCH',{date:date2,time:'12:00'},true)).status,200);const old=await call(`slots?date=${date}&service_id=1`);assert(old.body.slots.includes('11:00'));const next=await call(`slots?date=${date2}&service_id=1`);assert(!next.body.slots.includes('12:00'))});
+await test('Failed reschedule rolls back original reservation',async()=>{await call('bookings','POST',{...payload,date:date2,time:'13:00'});assert.equal((await call('bookings/'+booking.id,'PATCH',{date:date2,time:'13:00'},true)).status,409);assert.equal(db.prepare('SELECT time FROM bookings WHERE id=?').get(booking.id).time,'12:00');assert.equal(db.prepare('SELECT COUNT(*) n FROM occupied_slots WHERE booking_id=?').get(booking.id).n,6)});
+await test('Invoice calculates trusted prices and persists snapshot',async()=>{const r=await call('invoices','POST',{booking_id:booking.id,service_ids:[1,2],total:1},true);assert.equal(r.status,201);invoice=r.body.invoice;assert.equal(invoice.total,300);db.prepare('UPDATE services SET price=250 WHERE id=1').run();const saved=await call('invoices','GET',undefined,true);assert.equal(saved.body.invoices[0].items[0].price,200);db.prepare('UPDATE services SET price=200 WHERE id=1').run()});
+await test('Invoice endpoints reject unauthenticated access',async()=>assert.equal((await call('invoices')).status,401));
+await test('Cancellation releases slots',async()=>{assert.equal((await call('bookings/'+booking.id,'PATCH',{status:'Cancelled'},true)).status,200);assert.equal(db.prepare('SELECT COUNT(*) n FROM occupied_slots WHERE booking_id=?').get(booking.id).n,0)});
+await test('Cancelled booking cannot be rescheduled or billed',async()=>{assert.equal((await call('bookings/'+booking.id,'PATCH',{date,time:'16:00'},true)).status,400);assert.equal((await call('invoices','POST',{booking_id:booking.id,service_ids:[1]},true)).status,400)});
+await test('Chat without key explicitly labels catalog mode',async()=>{const r=await call('chat','POST',{message:'Haircut kitne ka hai?'});assert.equal(r.body.mode,'catalog');assert(r.body.reply.includes('₹200'));assert(r.body.reply.includes('not connected'))});
+await test('Oversized chat rejected',async()=>assert.equal((await call('chat','POST',{message:'a'.repeat(1001)})).status,400));
+await test('Disk persistence survives database reopening',async()=>{const reopened=new DatabaseSync(path.join(temporary,'test.sqlite'));assert(reopened.prepare('SELECT id FROM invoices WHERE id=?').get(invoice.id));reopened.close()});
+fs.mkdirSync('docs',{recursive:true});fs.writeFileSync('docs/test-results.json',JSON.stringify({testedAt:new Date().toISOString(),runtime:process.version,scope:'Real route handlers using a D1-compatible adapter over disk-backed node:sqlite. Does not verify Cloudflare runtime, React build, browser UI or live LLM.',passed,total:results.length,results},null,2));
+console.log(`${passed}/${results.length} passed`);db.close();

@@ -1,0 +1,101 @@
+{
+  "testedAt": "2026-10-21T16:31:29.974Z",
+  "runtime": "v24.18.0",
+  "scope": "Real route handlers using a D1-compatible adapter over disk-backed node:sqlite. Does not verify Cloudflare runtime, React build, browser UI or live LLM.",
+  "passed": 23,
+  "total": 23,
+  "results": [
+    {
+      "name": "Seeds exact five services and three sample statuses",
+      "passed": true
+    },
+    {
+      "name": "Admin booking data is protected",
+      "passed": true
+    },
+    {
+      "name": "Missing fields rejected on server",
+      "passed": true
+    },
+    {
+      "name": "Invalid phone rejected",
+      "passed": true
+    },
+    {
+      "name": "Past date rejected",
+      "passed": true
+    },
+    {
+      "name": "Impossible date rejected",
+      "passed": true
+    },
+    {
+      "name": "Bridal appointment cannot overrun closing",
+      "passed": true
+    },
+    {
+      "name": "Fresh booking persists with server-owned price",
+      "passed": true
+    },
+    {
+      "name": "Same start time rejected without orphan booking",
+      "passed": true
+    },
+    {
+      "name": "Overlapping different start time rejected",
+      "passed": true
+    },
+    {
+      "name": "Availability excludes occupied duration",
+      "passed": true
+    },
+    {
+      "name": "Authorized listing reloads saved booking",
+      "passed": true
+    },
+    {
+      "name": "Invalid status transition blocked",
+      "passed": true
+    },
+    {
+      "name": "Pending can be confirmed",
+      "passed": true
+    },
+    {
+      "name": "Reschedule moves reservation and releases old slot",
+      "passed": true
+    },
+    {
+      "name": "Failed reschedule rolls back original reservation",
+      "passed": true
+    },
+    {
+      "name": "Invoice calculates trusted prices and persists snapshot",
+      "passed": true
+    },
+    {
+      "name": "Invoice endpoints reject unauthenticated access",
+      "passed": true
+    },
+    {
+      "name": "Cancellation releases slots",
+      "passed": true
+    },
+    {
+      "name": "Cancelled booking cannot be rescheduled or billed",
+      "passed": true
+    },
+    {
+      "name": "Chat without key explicitly labels catalog mode",
+      "passed": true
+    },
+    {
+      "name": "Oversized chat rejected",
+      "passed": true
+    },
+    {
+      "name": "Disk persistence survives database reopening",
+      "passed": true
+    }
+  ]
+}
