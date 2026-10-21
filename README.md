@@ -1,5 +1,11 @@
 # AURA — Mini Salon Booking & Billing System
 
+## Project links
+
+- **Live app:** https://aura-salon-booking.sumitg.workers.dev
+- **GitHub:** https://github.com/sumitgole011/aura-salon-booking
+
+
 Original hiring-task implementation for GURU AI Technologies. Read **docs/START-HERE.md** first for the verified scope and remaining work. This source package is **not submission-ready yet**: dependency installation and publishing were blocked by network/DNS errors, and no LLM key was provided.
 
 ## Stack
