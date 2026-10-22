@@ -13,6 +13,18 @@
 **Scope:** Hiring-task demo, not a production-ready multi-salon SaaS. See security and operational limitations below.
 
 
+## Product Preview
+
+Real application screenshots committed under [`docs/`](docs/). Screenshots illustrate the UI; they do not by themselves verify deployed functionality.
+
+| Customer booking | Studio dashboard |
+|:--:|:--:|
+| ![AURA customer booking page](docs/Booking_Page.png) | ![AURA studio dashboard](docs/Studio_Dashboard.png) |
+
+| Billing | AI chatbot |
+|:--:|:--:|
+| ![AURA billing page](docs/Billing_Page.png) | ![AURA chatbot interface](docs/Chat-Bot.png) |
+
 ## Project links
 
 - **Demo video:** [Watch walkthrough](https://drive.google.com/file/d/1LZG9bk0m8E56S3sW8gEAXLP_Nz-yHL_6/view?usp=sharing)
