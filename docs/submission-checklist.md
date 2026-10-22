@@ -4,7 +4,7 @@
 - [ ] Real runtime migration applied and seeded sample data visible.
 - [ ] Desktop and mobile customer flow tested.
 - [ ] Database-backed availability and collision rejection verified on live app.
-- [ ] Admin status, reschedule/cancel and invoice PDF tested.
+- [ ] Admin status, reschedule/cancel and printable invoice tested (use browser Print → Save as PDF if a PDF file is required).
 - [ ] Gemini key configured privately and real multilingual tests recorded.
 - [ ] Final prompt iteration note reflects an actual observed model failure/retest.
 - [ ] GitHub URL exists and reviewer has access.
