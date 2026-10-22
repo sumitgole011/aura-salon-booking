@@ -85,6 +85,9 @@ Test the UI on a narrow mobile viewport and desktop. Complete `docs/submission-c
 
 ## Architecture
 
+[View architecture and booking workflow diagrams](docs/architecture.md) (Mermaid diagrams, verification scope, and screenshot checklist).
+
+
 - `app/page.tsx`: customer form, admin schedule, billing, print invoice, chat widget.
 - `app/globals.css`: responsive visual design, accessibility focus styles, print rules.
 - `app/api/[...path]/route.ts`: REST endpoints, authorization, validation, transactions, Gemini request.
