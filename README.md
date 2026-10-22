@@ -1,5 +1,18 @@
 # AURA — Mini Salon Booking & Billing System
 
+## Recruiter quick view
+
+**Problem:** Salon appointments, billing and customer inquiries need a consistent workflow.
+
+**Solution:** A deployed React/TypeScript application backed by Cloudflare Workers and D1, with appointment conflict handling, admin management, invoice generation and a Gemini-powered assistant.
+
+**Engineering highlights:** Server-authoritative availability, transactional slot reservations, server-side pricing, protected admin routes and a bounded chatbot context.
+
+**Evidence:** [Live application](https://aura-salon-booking.sumitg.workers.dev/) · [Walkthrough recording](https://drive.google.com/file/d/1LZG9bk0m8E56S3sW8gEAXLP_Nz-yHL_6/view?usp=sharing) · [Backend tests](tests/api.test.mjs) · [Submission checklist](docs/submission-checklist.md)
+
+**Scope:** Hiring-task demo, not a production-ready multi-salon SaaS. See security and operational limitations below.
+
+
 ## Project links
 
 - **Demo video:** [Watch walkthrough](https://drive.google.com/file/d/1LZG9bk0m8E56S3sW8gEAXLP_Nz-yHL_6/view?usp=sharing)
