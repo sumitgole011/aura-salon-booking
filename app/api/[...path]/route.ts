@@ -14,7 +14,10 @@ async function seed(){
  }
 }
 function admin(req:Request){const key=vars().ADMIN_TOKEN;if(!key||req.headers.get('Authorization')!==`Bearer ${key}`)throw new Error('ADMIN_REQUIRED')}
-async function body(req:Request){if(Number(req.headers.get('Content-Length')||0)>16000)throw new Error('Request too large.');try{return await req.json() as Record<string,any>}catch{throw new Error('Invalid JSON body.')}}
+async function body(req:Request){if(Number(req.headers.get('Content-Length')||0)>16000)throw new Error('Request too large.');let value:unknown;
+ try{value=await req.json()}catch{throw new Error('Invalid JSON body.')}
+ if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Expected a JSON object.');
+ return value as Record<string,any>;}
 async function handle(req:Request){try{
  await seed(); const url=new URL(req.url),parts=url.pathname.replace(/^\/api\//,'').split('/'),route=parts[0];
  if(route==='services'&&req.method==='GET')return json({services:(await db().prepare('SELECT * FROM services ORDER BY id').all()).results,today:today(),hours:'10:00–20:00',timezone:'Asia/Kolkata'});
@@ -30,7 +33,8 @@ async function handle(req:Request){try{
   const b=await body(req),name=typeof b.customer_name==='string'?b.customer_name.trim():'',phone=typeof b.phone==='string'?b.phone.trim():'';
   if(name.length<2||name.length>80||!/^\d{10}$/.test(phone))throw new Error('Enter your name (2–80 characters) and a 10-digit phone number.');
   const s=await db().prepare('SELECT * FROM services WHERE id=?').bind(Number(b.service_id)||0).first<any>();if(!s)throw new Error('Select a valid service.');
-  validateAppointment(String(b.date),String(b.time),s.duration);const id=crypto.randomUUID();
+  if(typeof b.date!=='string'||typeof b.time!=='string')throw new Error('Select a valid date and time.');
+  validateAppointment(b.date,b.time,s.duration);const id=crypto.randomUUID();
   await db().batch([db().prepare('INSERT INTO bookings VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,name,phone,s.id,b.date,b.time,'Pending',s.price,s.duration,new Date().toISOString()),...occupied(b.time,s.duration).map(m=>db().prepare('INSERT INTO occupied_slots VALUES(?,?,?)').bind(b.date,m,id))]);
   return json({booking:{id,customer_name:name,service_name:s.name,date:b.date,time:b.time,price:s.price,duration:s.duration,status:'Pending'}},201);
  }
@@ -40,7 +44,7 @@ async function handle(req:Request){try{
  }
  if(route==='bookings'&&req.method==='PATCH'){
   admin(req);const b=await body(req),old=await db().prepare('SELECT * FROM bookings WHERE id=?').bind(parts[1]||'').first<any>();if(!old)return json({error:'Booking not found.'},404);
-  if(b.date||b.time){if(['Done','Cancelled'].includes(old.status))throw new Error('Completed or cancelled bookings cannot be rescheduled.');const date=b.date||old.date,time=b.time||old.time;validateAppointment(date,time,old.duration);
+  if('date' in b||'time' in b){if(('date' in b&&typeof b.date!=='string')||('time' in b&&typeof b.time!=='string'))throw new Error('Select a valid date and time.');if(['Done','Cancelled'].includes(old.status))throw new Error('Completed or cancelled bookings cannot be rescheduled.');const date=b.date??old.date,time=b.time??old.time;validateAppointment(date,time,old.duration);
    await db().batch([db().prepare('DELETE FROM occupied_slots WHERE booking_id=?').bind(old.id),db().prepare('UPDATE bookings SET date=?,time=? WHERE id=?').bind(date,time,old.id),...occupied(time,old.duration).map(m=>db().prepare('INSERT INTO occupied_slots VALUES(?,?,?)').bind(date,m,old.id))]);
   }else{const allowed:Record<string,string[]>={Pending:['Confirmed','Cancelled'],Confirmed:['Done','Cancelled'],Done:[],Cancelled:[]};if(!allowed[old.status]?.includes(b.status))throw new Error('Invalid status transition.');const queries=[db().prepare('UPDATE bookings SET status=? WHERE id=?').bind(b.status,old.id)];if(b.status==='Cancelled')queries.push(db().prepare('DELETE FROM occupied_slots WHERE booking_id=?').bind(old.id));await db().batch(queries)}
   return json({ok:true});
